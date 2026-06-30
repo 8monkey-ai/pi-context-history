@@ -50,7 +50,7 @@ function registerStripToolHistory(pi: ExtensionAPI) {
 	});
 }
 
-function firstUserDate(entries: TranscriptEntry[]): Date | null {
+function firstUserDate(entries: TranscriptEntry[]) {
 	const first = entries.find((e) => e.type === "message" && e.message?.role === "user");
 	return first ? new Date(first.timestamp) : null;
 }
@@ -111,15 +111,9 @@ function registerInjectSummary(pi: ExtensionAPI) {
 	});
 }
 
-const FEATURES: Array<[flag: string, register: (pi: ExtensionAPI) => void]> = [
-	["PI_TRIM_HISTORY", registerTrimHistory],
-	["PI_STRIP_TOOL_HISTORY", registerStripToolHistory],
-	["PI_GENERATE_SUMMARY", registerGenerateSummary],
-	["PI_INJECT_SUMMARY", registerInjectSummary],
-];
-
 export default function (pi: ExtensionAPI) {
-	for (const [flag, register] of FEATURES) {
-		if (featureEnabled(flag)) register(pi);
-	}
+	if (featureEnabled("PI_TRIM_HISTORY")) registerTrimHistory(pi);
+	if (featureEnabled("PI_STRIP_TOOL_HISTORY")) registerStripToolHistory(pi);
+	if (featureEnabled("PI_GENERATE_SUMMARY")) registerGenerateSummary(pi);
+	if (featureEnabled("PI_INJECT_SUMMARY")) registerInjectSummary(pi);
 }
