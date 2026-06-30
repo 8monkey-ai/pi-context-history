@@ -1,6 +1,6 @@
 {
 	"name": "@8monkey/pi-context-history",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Pi extension that manages conversation context: trims old history, strips stale tool calls, and keeps a rolling summary fed back into the system prompt. Each feature toggles independently.",
 	"license": "MIT",
 	"type": "module",
