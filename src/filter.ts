@@ -1,11 +1,3 @@
-interface TimestampedMessage {
-	timestamp: number;
-}
-
-export function filterByAge<T extends TimestampedMessage>(
-	messages: T[],
-	now: number,
-	maxAgeMs: number,
-): T[] {
+export function filterByAge<T extends { timestamp: number }>(messages: T[], now: number, maxAgeMs: number) {
 	return messages.filter((msg) => msg.timestamp >= now - maxAgeMs);
 }

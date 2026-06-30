@@ -1,7 +1,7 @@
 // Each feature is enabled unless its flag is explicitly set to a falsy value.
 // This keeps the bundle behaving like all four original extensions installed
 // together, while letting users opt out of any single one.
-export function featureEnabled(flag: string): boolean {
+export function featureEnabled(flag: string) {
 	const value = process.env[flag];
 	return value !== "false" && value !== "0";
 }

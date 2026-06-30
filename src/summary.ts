@@ -3,14 +3,9 @@ import { DEFAULT_SUMMARY_PROMPT } from "./default-prompt.ts";
 
 const DAY_MS = 86_400_000;
 
-interface ContentBlock {
-	type: string;
-	text?: string;
-}
-
 interface Message {
 	role?: string;
-	content?: string | ContentBlock[];
+	content?: string | { type: string; text?: string }[];
 }
 
 export interface TranscriptEntry {
@@ -19,7 +14,7 @@ export interface TranscriptEntry {
 	message?: Message;
 }
 
-export function buildTranscript(entries: TranscriptEntry[]): string {
+export function buildTranscript(entries: TranscriptEntry[]) {
 	return entries
 		.filter((e) => e.type === "message")
 		.map((e) => {
@@ -39,26 +34,21 @@ export function buildTranscript(entries: TranscriptEntry[]): string {
 		.join("\n\n");
 }
 
-function daysSince(date: Date, now: number): number {
+function daysSince(date: Date, now: number) {
 	return (now - date.getTime()) / DAY_MS;
 }
 
-export function isStale(
-	summaryMtime: Date | null,
-	firstUserDate: Date | null,
-	now: number,
-	stalenessDays: number,
-): boolean {
+export function isStale(summaryMtime: Date | null, firstUserDate: Date | null, now: number, stalenessDays: number) {
 	if (summaryMtime && daysSince(summaryMtime, now) < stalenessDays) return false;
 	if (!firstUserDate || daysSince(firstUserDate, now) < stalenessDays) return false;
 	return true;
 }
 
-export function resolvePromptTemplate(fileContents: string | null): string {
+export function resolvePromptTemplate(fileContents: string | null) {
 	return fileContents ?? DEFAULT_SUMMARY_PROMPT;
 }
 
-export function runPiSummary(template: string, history: string): string {
+export function runPiSummary(template: string, history: string) {
 	return execFileSync(
 		"pi",
 		[

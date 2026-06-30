@@ -106,7 +106,7 @@ function registerInjectSummary(pi: ExtensionAPI) {
 		const mtime = summary ? piFileMtime("agent/summary.md") : null;
 		const summaryDate = mtime ? (mtime.toISOString().split("T")[0] ?? "unknown") : "unknown";
 
-		const systemPrompt = buildContextPrompt(event.systemPrompt, { summary, summaryDate });
+		const systemPrompt = buildContextPrompt(event.systemPrompt, summary, summaryDate);
 		return { systemPrompt };
 	});
 }
