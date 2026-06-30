@@ -1,8 +1,8 @@
 # pi-context-history
 
-A [Pi](https://github.com/earendil-works/pi-coding-agent) extension that manages conversation context end to end. It trims old history, strips stale tool chatter from earlier turns, keeps a rolling session summary, and folds that summary back into the system prompt — so long-running conversations stay lean, focused, and continuous.
+A [Pi](https://github.com/earendil-works/pi-coding-agent) extension that manages conversation context end-to-end. It trims old history, strips stale tool chatter from earlier turns, keeps a rolling session summary, and folds that summary back into the system prompt — so long-running conversations stay lean, focused, and continuous.
 
-This bundles four previously separate extensions into one. Each feature is independent and can be turned off on its own, so you can run the whole pipeline or just the parts you want.
+Each feature is independent and can be turned off individually, so you can run the whole pipeline or just the parts you want.
 
 ## Features
 
@@ -24,7 +24,7 @@ pi install npm:@8monkey/pi-context-history
 ## How it works
 
 - **Trim history.** On each `context` event the message list is filtered to those whose `timestamp` is within `PI_HISTORY_DAYS`. Messages exactly at the cutoff are kept.
-- **Strip tool history.** At the start of each agent loop the extension finds the boundary — the first message of the current turn — by scanning from the end and skipping the trailing tool exchange. Before the boundary, tool-result messages are dropped and assistant messages lose their tool-call blocks (an assistant message left empty is dropped); at or after it, everything is preserved verbatim. The boundary is held stable across a loop's repeated context calls so a running turn is never stripped mid-flight.
+- **Strip tool history.** At the start of each agent loop, the extension finds the boundary — the first message of the current turn — by scanning from the end and skipping the trailing tool exchange. Before the boundary, tool-result messages are dropped, and assistant messages lose their tool-call blocks (an assistant message left empty is dropped); at or after it, everything is preserved verbatim. The boundary is held stable across a loop's repeated context calls, so a running turn is never stripped mid-flight.
 - **Generate summary.** When you resume, reload, or fork a session whose summary is older than `PI_SUMMARY_STALENESS_DAYS` (and whose first message is older than the window), the extension shells out to `pi -p` — with extensions, context files, and skills disabled — to rebuild `~/.pi/agent/summary.md`. New and empty sessions are skipped. Drop your own template at `prompts/session-summary.md` (project `.pi/` wins over `~/.pi/`) to override the built-in prompt; it must contain the `{conversation_history}` placeholder.
 - **Inject summary.** Before each agent run, when `~/.pi/agent/summary.md` exists, its contents are wrapped in a `<summary date="…">` block (the date is the file's modified time) followed by an `<additional_context>` note telling the model to maintain continuity and match the existing language and tone.
 
