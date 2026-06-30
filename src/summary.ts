@@ -3,16 +3,14 @@ import { DEFAULT_SUMMARY_PROMPT } from "./default-prompt.ts";
 
 const DAY_MS = 86_400_000;
 
-interface Message {
-	role?: string;
-	content?: string | { type: string; text?: string }[];
-}
-
-export interface TranscriptEntry {
+export type TranscriptEntry = {
 	type: string;
 	timestamp: string;
-	message?: Message;
-}
+	message?: {
+		role?: string;
+		content?: string | { type: string; text?: string }[];
+	};
+};
 
 export function buildTranscript(entries: TranscriptEntry[]) {
 	return entries
