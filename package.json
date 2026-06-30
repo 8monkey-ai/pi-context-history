@@ -1,0 +1,46 @@
+{
+	"name": "@8monkey/pi-context-history",
+	"version": "0.1.0",
+	"description": "Pi extension that manages conversation context: trims old history, strips stale tool calls, and keeps a rolling summary fed back into the system prompt. Each feature toggles independently.",
+	"license": "MIT",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/8monkey-ai/pi-context-history.git"
+	},
+	"homepage": "https://github.com/8monkey-ai/pi-context-history#readme",
+	"bugs": "https://github.com/8monkey-ai/pi-context-history/issues",
+	"files": [
+		"src",
+		"README.md",
+		"LICENSE"
+	],
+	"pi": {
+		"extensions": [
+			"./src/index.ts"
+		]
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"test": "node --test",
+		"typecheck": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*"
+	},
+	"devDependencies": {
+		"@earendil-works/pi-coding-agent": "*",
+		"@types/node": "^22",
+		"typescript": "^5"
+	},
+	"keywords": [
+		"pi",
+		"pi-extension",
+		"context",
+		"history",
+		"summary",
+		"tool-calls"
+	]
+}
