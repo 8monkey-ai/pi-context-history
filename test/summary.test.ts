@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DEFAULT_SUMMARY_PROMPT } from "../src/default-prompt.ts";
-import { buildTranscript, isStale, resolvePromptTemplate, type TranscriptEntry } from "../src/summary.ts";
+import { buildTranscript, isStale, resolvePromptTemplate } from "../src/summary.ts";
 
 const TS = "2026-06-18T09:30:45Z";
 
