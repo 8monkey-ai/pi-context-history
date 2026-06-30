@@ -18,14 +18,12 @@ import {
 const HISTORY_MS = HISTORY_DAYS * 86_400_000;
 const SUMMARY_PATH = join(homedir(), ".pi", "agent", "summary.md");
 
-// Drop messages older than PI_HISTORY_DAYS from the context on every LLM call.
 function registerTrimHistory(pi: ExtensionAPI) {
 	pi.on("context", (event) => {
 		return { messages: filterByAge(event.messages, Date.now(), HISTORY_MS) };
 	});
 }
 
-// Strip tool calls and results from prior turns, keeping the current turn intact.
 function registerStripToolHistory(pi: ExtensionAPI) {
 	let boundaryIndex = 0;
 	let newLoopStarted = true;
@@ -37,9 +35,8 @@ function registerStripToolHistory(pi: ExtensionAPI) {
 	pi.on("context", (event) => {
 		const messages = event.messages as unknown as Message[];
 
-		// Recompute the boundary once per agent loop, then keep it stable across
-		// the loop's repeated context calls so mid-turn tool exchanges aren't
-		// stripped out from under the running turn.
+		// Pin the boundary for the whole loop; recomputing per context call would
+		// strip the running turn's own tool exchange mid-flight.
 		if (newLoopStarted) {
 			boundaryIndex = findBoundary(messages);
 			newLoopStarted = false;
@@ -65,7 +62,6 @@ function generate(entries: TranscriptEntry[]): string | "empty" {
 	return summary;
 }
 
-// Regenerate a stale rolling summary on resume, and expose /summarize-session.
 function registerGenerateSummary(pi: ExtensionAPI) {
 	pi.on("session_start", (event, ctx) => {
 		if (event.reason === "new") return;
@@ -99,7 +95,6 @@ function registerGenerateSummary(pi: ExtensionAPI) {
 	});
 }
 
-// Fold the rolling summary into the system prompt before each agent run.
 function registerInjectSummary(pi: ExtensionAPI) {
 	pi.on("before_agent_start", (event) => {
 		const summary = readPiFile("agent/summary.md");

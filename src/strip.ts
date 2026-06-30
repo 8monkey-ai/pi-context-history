@@ -1,16 +1,12 @@
-// Minimal, self-contained shape of a Pi context message. We only touch `role`
-// and the `type` of each content block, so we keep the typing to that surface
-// and avoid a runtime dependency on the pi package.
+// Minimal message shape, to avoid a runtime dependency on the pi package.
 export type Message = {
 	role: string;
 	content: { type: string }[];
 };
 
-// The boundary is the index of the first message belonging to the current agent
-// turn. We start from the end and skip the trailing tool exchange — any tool
-// results, plus the assistant message that issued the tool calls — so the
-// current turn's tool interactions stay intact while earlier ones are eligible
-// for stripping.
+// Index of the first message in the current turn: scan from the end, skipping the
+// trailing tool exchange (tool results + the assistant message that called them),
+// so the current turn's tools survive while earlier ones can be stripped.
 export function findBoundary(messages: Message[]) {
 	let boundary = messages.length;
 	while (boundary > 0 && messages[boundary - 1]?.role === "toolResult") {
@@ -25,10 +21,6 @@ export function findBoundary(messages: Message[]) {
 	return boundary;
 }
 
-// Remove tool calls and results from every message before `boundaryIndex`,
-// leaving messages at or after the boundary verbatim. Tool-result messages are
-// dropped; assistant messages lose their toolCall blocks and are dropped
-// entirely if nothing else remains.
 export function stripBeforeBoundary(messages: Message[], boundaryIndex: number) {
 	const cleaned: Message[] = [];
 	for (let i = 0; i < messages.length; i++) {
