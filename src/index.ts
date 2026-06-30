@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, SessionManager } from "@earendil-works/pi-coding-agent";
 import { buildContextPrompt } from "./build-prompt.ts";
 import { featureEnabled, HISTORY_DAYS, SUMMARY_STALENESS_DAYS } from "./config.ts";
 import { filterByAge } from "./filter.ts";
@@ -17,6 +17,14 @@ import {
 
 const HISTORY_MS = HISTORY_DAYS * 86_400_000;
 const SUMMARY_PATH = join(homedir(), ".pi", "agent", "summary.md");
+const ZERO_USAGE = {
+	input: 0,
+	output: 0,
+	cacheRead: 0,
+	cacheWrite: 0,
+	totalTokens: 0,
+	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+};
 
 function registerTrimHistory(pi: ExtensionAPI) {
 	pi.on("context", (event) => {
@@ -76,7 +84,7 @@ function registerGenerateSummary(pi: ExtensionAPI) {
 
 	pi.registerCommand("summarize-session", {
 		description: "Regenerate the current session's summary now (ignores staleness)",
-		handler: async (_args, ctx: ExtensionCommandContext) => {
+		handler: async (_args, ctx) => {
 			const entries = ctx.sessionManager.getEntries() as TranscriptEntry[];
 			let result: string | "empty";
 			try {
@@ -106,9 +114,56 @@ function registerInjectSummary(pi: ExtensionAPI) {
 	});
 }
 
+function registerAppendMessage(pi: ExtensionAPI) {
+	pi.registerCommand("add-user-message", {
+		description: "Append a user message to the end of the conversation history",
+		handler: async (args, ctx) => {
+			const text = args.trim();
+			if (!text) {
+				if (ctx.hasUI) ctx.ui.notify("Usage: /add-user-message <text>", "warning");
+				return;
+			}
+			const session = ctx.sessionManager as SessionManager;
+			session.appendMessage({ role: "user", content: [{ type: "text", text }], timestamp: Date.now() });
+			if (ctx.hasUI) ctx.ui.notify("Appended a user message; it applies on the next session rebuild.", "info");
+		},
+	});
+
+	pi.registerCommand("add-assistant-message", {
+		description: "Append an assistant message to the end of the conversation history",
+		handler: async (args, ctx) => {
+			const text = args.trim();
+			if (!text) {
+				if (ctx.hasUI) ctx.ui.notify("Usage: /add-assistant-message <text>", "warning");
+				return;
+			}
+			if (!ctx.model) {
+				if (ctx.hasUI) ctx.ui.notify("Cannot append an assistant message: no model selected.", "error");
+				return;
+			}
+			const { api, provider, id } = ctx.model;
+			const session = ctx.sessionManager as SessionManager;
+			session.appendMessage({
+				role: "assistant",
+				content: [{ type: "text", text }],
+				api,
+				provider,
+				model: id,
+				usage: ZERO_USAGE,
+				stopReason: "stop",
+				timestamp: Date.now(),
+			});
+			if (ctx.hasUI) {
+				ctx.ui.notify("Appended an assistant message; it applies on the next session rebuild.", "info");
+			}
+		},
+	});
+}
+
 export default function (pi: ExtensionAPI) {
 	if (featureEnabled("PI_TRIM_HISTORY")) registerTrimHistory(pi);
 	if (featureEnabled("PI_STRIP_TOOL_HISTORY")) registerStripToolHistory(pi);
 	if (featureEnabled("PI_GENERATE_SUMMARY")) registerGenerateSummary(pi);
 	if (featureEnabled("PI_INJECT_SUMMARY")) registerInjectSummary(pi);
+	if (featureEnabled("PI_APPEND_MESSAGE")) registerAppendMessage(pi);
 }
