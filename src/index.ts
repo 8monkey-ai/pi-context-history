@@ -71,7 +71,7 @@ function generate(entries: TranscriptEntry[]): string | "empty" {
 	return summary;
 }
 
-function registerGenerateCompact(pi: ExtensionAPI) {
+function registerCompact(pi: ExtensionAPI) {
 	pi.on("session_start", (event, ctx) => {
 		if (event.reason === "new") return;
 		const entries = ctx.sessionManager.getEntries() as TranscriptEntry[];
@@ -102,9 +102,7 @@ function registerGenerateCompact(pi: ExtensionAPI) {
 			}
 		},
 	});
-}
 
-function registerInjectCompact(pi: ExtensionAPI) {
 	pi.on("before_agent_start", (event) => {
 		const summary = readPiFile(COMPACT_RELATIVE_PATH);
 		const mtime = summary ? piFileMtime(COMPACT_RELATIVE_PATH) : null;
@@ -164,9 +162,6 @@ function registerAppendMessage(pi: ExtensionAPI) {
 export default function (pi: ExtensionAPI) {
 	if (featureEnabled("PI_TRIM_HISTORY")) registerTrimHistory(pi);
 	if (featureEnabled("PI_STRIP_TOOL_HISTORY")) registerStripToolHistory(pi);
-	if (featureEnabled("PI_COMPACT")) {
-		registerGenerateCompact(pi);
-		registerInjectCompact(pi);
-	}
+	if (featureEnabled("PI_COMPACT")) registerCompact(pi);
 	if (featureEnabled("PI_APPEND_MESSAGE")) registerAppendMessage(pi);
 }
