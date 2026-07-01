@@ -5,4 +5,4 @@ export function featureEnabled(flag: string) {
 }
 
 export const HISTORY_DAYS = Number(process.env["PI_HISTORY_DAYS"]) || 60;
-export const SUMMARY_STALENESS_DAYS = Number(process.env["PI_SUMMARY_STALENESS_DAYS"]) || 3;
+export const COMPACT_STALENESS_DAYS = Number(process.env["PI_COMPACT_STALENESS_DAYS"]) || 3;
