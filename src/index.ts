@@ -16,7 +16,8 @@ import { piFileMtime, readPiFile } from "./pi-file.ts";
 import { findBoundary, stripBeforeBoundary, type Message } from "./strip.ts";
 
 const HISTORY_MS = HISTORY_DAYS * 86_400_000;
-const COMPACT_PATH = join(homedir(), ".pi", "agent", "compact.md");
+const COMPACT_RELATIVE_PATH = "agent/compact.md";
+const COMPACT_PATH = join(homedir(), ".pi", COMPACT_RELATIVE_PATH);
 const ZERO_USAGE = {
 	input: 0,
 	output: 0,
@@ -74,7 +75,7 @@ function registerGenerateCompact(pi: ExtensionAPI) {
 	pi.on("session_start", (event, ctx) => {
 		if (event.reason === "new") return;
 		const entries = ctx.sessionManager.getEntries() as TranscriptEntry[];
-		if (!isStale(piFileMtime("agent/compact.md"), firstUserDate(entries), Date.now(), COMPACT_STALENESS_DAYS)) {
+		if (!isStale(piFileMtime(COMPACT_RELATIVE_PATH), firstUserDate(entries), Date.now(), COMPACT_STALENESS_DAYS)) {
 			return;
 		}
 		try {
@@ -105,8 +106,8 @@ function registerGenerateCompact(pi: ExtensionAPI) {
 
 function registerInjectCompact(pi: ExtensionAPI) {
 	pi.on("before_agent_start", (event) => {
-		const summary = readPiFile("agent/compact.md");
-		const mtime = summary ? piFileMtime("agent/compact.md") : null;
+		const summary = readPiFile(COMPACT_RELATIVE_PATH);
+		const mtime = summary ? piFileMtime(COMPACT_RELATIVE_PATH) : null;
 		const summaryDate = mtime ? (mtime.toISOString().split("T")[0] ?? "unknown") : "unknown";
 
 		const systemPrompt = buildContextPrompt(event.systemPrompt, summary, summaryDate);
