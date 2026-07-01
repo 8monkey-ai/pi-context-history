@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { DEFAULT_SUMMARY_PROMPT } from "./default-prompt.ts";
+import { DEFAULT_COMPACT_PROMPT } from "./default-prompt.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -43,10 +43,10 @@ export function isStale(summaryMtime: Date | null, firstUserDate: Date | null, n
 }
 
 export function resolvePromptTemplate(fileContents: string | null) {
-	return fileContents ?? DEFAULT_SUMMARY_PROMPT;
+	return fileContents ?? DEFAULT_COMPACT_PROMPT;
 }
 
-export function runPiSummary(template: string, history: string) {
+export function runPiCompact(template: string, history: string) {
 	return execFileSync(
 		"pi",
 		[

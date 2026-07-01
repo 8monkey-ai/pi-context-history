@@ -3,20 +3,21 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, SessionManager } from "@earendil-works/pi-coding-agent";
 import { buildContextPrompt } from "./build-prompt.ts";
-import { featureEnabled, HISTORY_DAYS, SUMMARY_STALENESS_DAYS } from "./config.ts";
-import { filterByAge } from "./filter.ts";
-import { piFileMtime, readPiFile } from "./pi-file.ts";
-import { findBoundary, stripBeforeBoundary, type Message } from "./strip.ts";
 import {
 	buildTranscript,
 	isStale,
 	resolvePromptTemplate,
-	runPiSummary,
+	runPiCompact,
 	type TranscriptEntry,
-} from "./summary.ts";
+} from "./compact.ts";
+import { COMPACT_STALENESS_DAYS, featureEnabled, HISTORY_DAYS } from "./config.ts";
+import { filterByAge } from "./filter.ts";
+import { piFileMtime, readPiFile } from "./pi-file.ts";
+import { findBoundary, stripBeforeBoundary, type Message } from "./strip.ts";
 
 const HISTORY_MS = HISTORY_DAYS * 86_400_000;
-const SUMMARY_PATH = join(homedir(), ".pi", "agent", "summary.md");
+const COMPACT_RELATIVE_PATH = "agent/compact.md";
+const COMPACT_PATH = join(homedir(), ".pi", COMPACT_RELATIVE_PATH);
 const ZERO_USAGE = {
 	input: 0,
 	output: 0,
@@ -63,18 +64,18 @@ function firstUserDate(entries: TranscriptEntry[]) {
 function generate(entries: TranscriptEntry[]): string | "empty" {
 	const history = buildTranscript(entries);
 	if (!history) return "empty";
-	const template = resolvePromptTemplate(readPiFile("prompts/session-summary.md"));
-	const summary = runPiSummary(template, history);
+	const template = resolvePromptTemplate(readPiFile("prompts/compact.md"));
+	const summary = runPiCompact(template, history);
 	if (!summary) return "empty";
-	writeFileSync(SUMMARY_PATH, summary);
+	writeFileSync(COMPACT_PATH, summary);
 	return summary;
 }
 
-function registerGenerateSummary(pi: ExtensionAPI) {
+function registerCompact(pi: ExtensionAPI) {
 	pi.on("session_start", (event, ctx) => {
 		if (event.reason === "new") return;
 		const entries = ctx.sessionManager.getEntries() as TranscriptEntry[];
-		if (!isStale(piFileMtime("agent/summary.md"), firstUserDate(entries), Date.now(), SUMMARY_STALENESS_DAYS)) {
+		if (!isStale(piFileMtime(COMPACT_RELATIVE_PATH), firstUserDate(entries), Date.now(), COMPACT_STALENESS_DAYS)) {
 			return;
 		}
 		try {
@@ -82,8 +83,8 @@ function registerGenerateSummary(pi: ExtensionAPI) {
 		} catch {}
 	});
 
-	pi.registerCommand("summarize-session", {
-		description: "Regenerate the current session's summary now (ignores staleness)",
+	pi.registerCommand("compact-session", {
+		description: "Regenerate the session summary in ~/.pi/agent/compact.md now (ignores staleness)",
 		handler: async (_args, ctx) => {
 			const entries = ctx.sessionManager.getEntries() as TranscriptEntry[];
 			let result: string | "empty";
@@ -97,16 +98,14 @@ function registerGenerateSummary(pi: ExtensionAPI) {
 			if (result === "empty") {
 				ctx.ui.notify("Nothing to summarize in this session.", "info");
 			} else {
-				ctx.ui.notify("Session summary written to ~/.pi/agent/summary.md.", "info");
+				ctx.ui.notify("Session summary written to ~/.pi/agent/compact.md.", "info");
 			}
 		},
 	});
-}
 
-function registerInjectSummary(pi: ExtensionAPI) {
 	pi.on("before_agent_start", (event) => {
-		const summary = readPiFile("agent/summary.md");
-		const mtime = summary ? piFileMtime("agent/summary.md") : null;
+		const summary = readPiFile(COMPACT_RELATIVE_PATH);
+		const mtime = summary ? piFileMtime(COMPACT_RELATIVE_PATH) : null;
 		const summaryDate = mtime ? (mtime.toISOString().split("T")[0] ?? "unknown") : "unknown";
 
 		const systemPrompt = buildContextPrompt(event.systemPrompt, summary, summaryDate);
@@ -163,7 +162,6 @@ function registerAppendMessage(pi: ExtensionAPI) {
 export default function (pi: ExtensionAPI) {
 	if (featureEnabled("PI_TRIM_HISTORY")) registerTrimHistory(pi);
 	if (featureEnabled("PI_STRIP_TOOL_HISTORY")) registerStripToolHistory(pi);
-	if (featureEnabled("PI_GENERATE_SUMMARY")) registerGenerateSummary(pi);
-	if (featureEnabled("PI_INJECT_SUMMARY")) registerInjectSummary(pi);
+	if (featureEnabled("PI_COMPACT")) registerCompact(pi);
 	if (featureEnabled("PI_APPEND_MESSAGE")) registerAppendMessage(pi);
 }
