@@ -36,8 +36,8 @@
 		"typescript": "^5"
 	},
 	"keywords": [
+		"pi-package",
 		"pi",
-		"pi-extension",
 		"context",
 		"history",
 		"summary",
