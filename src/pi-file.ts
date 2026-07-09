@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -15,12 +15,4 @@ export function readPiFile(relative: string): string | null {
 		content = readFileSync(join(PROJECT_PI_DIR, relative), "utf-8").trim() || null;
 	} catch {}
 	return content;
-}
-
-export function piFileMtime(relative: string): Date | null {
-	try {
-		return statSync(join(PI_DIR, relative)).mtime;
-	} catch {
-		return null;
-	}
 }

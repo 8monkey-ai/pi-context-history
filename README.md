@@ -16,7 +16,7 @@ pi install npm:@8monkey/pi-context-history
 
 - **Trim history.** Drops messages older than `PI_HISTORY_DAYS` (60 by default) on each context rebuild.
 - **Strip tool history.** Removes tool calls and results from turns before the current one, leaving the in-progress turn untouched.
-- **Compact.** Keeps a rolling summary of your sessions in `~/.pi/agent/compact.md` and folds it into the system prompt, so the model continues with prior context. The summary regenerates during session start when you resume a session after it has gone stale. Run `/compact-session` to regenerate on demand.
+- **Compact.** Keeps a rolling summary of each session in `~/.pi/agent/compact/<session-id>.md` and folds it into that session's system prompt, so the model continues with prior context. The summary regenerates during session start when you resume a session after it has gone stale. Run `/compact-session` to regenerate on demand.
 - **Append message.** Adds a user or assistant message to the end of the history with `/add-user-message` and `/add-assistant-message`.
 
 ## Commands
