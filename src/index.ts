@@ -126,13 +126,8 @@ function registerCompact(pi: ExtensionAPI) {
 	});
 
 	pi.on("before_agent_start", (event, ctx) => {
-		const sessionId = ctx.sessionManager.getSessionId();
-		const summary = readCompact(sessionId);
-		const mtime = summary ? compactMtime(sessionId) : null;
-		const summaryDate = mtime ? (mtime.toISOString().split("T")[0] ?? "unknown") : "unknown";
-
-		const systemPrompt = buildContextPrompt(event.systemPrompt, summary, summaryDate);
-		return { systemPrompt };
+		const summary = readCompact(ctx.sessionManager.getSessionId());
+		return { systemPrompt: buildContextPrompt(event.systemPrompt, summary) };
 	});
 }
 
