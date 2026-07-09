@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, SessionManager } from "@earendil-works/pi-coding-agent";
@@ -12,12 +12,11 @@ import {
 } from "./compact.ts";
 import { COMPACT_STALENESS_DAYS, featureEnabled, HISTORY_DAYS } from "./config.ts";
 import { filterByAge } from "./filter.ts";
-import { piFileMtime, readPiFile } from "./pi-file.ts";
+import { readPiFile } from "./pi-file.ts";
 import { findBoundary, stripBeforeBoundary, type Message } from "./strip.ts";
 
 const HISTORY_MS = HISTORY_DAYS * 86_400_000;
-const COMPACT_RELATIVE_PATH = "agent/compact.md";
-const COMPACT_PATH = join(homedir(), ".pi", COMPACT_RELATIVE_PATH);
+const COMPACT_DIR = join(homedir(), ".pi", "agent", "compact");
 const ZERO_USAGE = {
 	input: 0,
 	output: 0,
@@ -61,35 +60,58 @@ function firstUserDate(entries: TranscriptEntry[]) {
 	return first ? new Date(first.timestamp) : null;
 }
 
-function generate(entries: TranscriptEntry[]): string | "empty" {
+function compactPath(sessionId: string) {
+	return join(COMPACT_DIR, `${sessionId}.md`);
+}
+
+function compactMtime(sessionId: string) {
+	try {
+		return statSync(compactPath(sessionId)).mtime;
+	} catch {
+		return null;
+	}
+}
+
+function readCompact(sessionId: string) {
+	try {
+		return readFileSync(compactPath(sessionId), "utf-8").trim() || null;
+	} catch {
+		return null;
+	}
+}
+
+function generate(sessionId: string, entries: TranscriptEntry[]): string | "empty" {
 	const history = buildTranscript(entries);
 	if (!history) return "empty";
 	const template = resolvePromptTemplate(readPiFile("prompts/compact.md"));
 	const summary = runPiCompact(template, history);
 	if (!summary) return "empty";
-	writeFileSync(COMPACT_PATH, summary);
+	mkdirSync(COMPACT_DIR, { recursive: true });
+	writeFileSync(compactPath(sessionId), summary);
 	return summary;
 }
 
 function registerCompact(pi: ExtensionAPI) {
 	pi.on("session_start", (event, ctx) => {
 		if (event.reason === "new") return;
+		const sessionId = ctx.sessionManager.getSessionId();
 		const entries = ctx.sessionManager.getEntries() as TranscriptEntry[];
-		if (!isStale(piFileMtime(COMPACT_RELATIVE_PATH), firstUserDate(entries), Date.now(), COMPACT_STALENESS_DAYS)) {
+		if (!isStale(compactMtime(sessionId), firstUserDate(entries), Date.now(), COMPACT_STALENESS_DAYS)) {
 			return;
 		}
 		try {
-			generate(entries);
+			generate(sessionId, entries);
 		} catch {}
 	});
 
 	pi.registerCommand("compact-session", {
-		description: "Regenerate the session summary in ~/.pi/agent/compact.md now (ignores staleness)",
+		description: "Regenerate this session's summary in ~/.pi/agent/compact/ now (ignores staleness)",
 		handler: async (_args, ctx) => {
+			const sessionId = ctx.sessionManager.getSessionId();
 			const entries = ctx.sessionManager.getEntries() as TranscriptEntry[];
 			let result: string | "empty";
 			try {
-				result = generate(entries);
+				result = generate(sessionId, entries);
 			} catch (err) {
 				if (ctx.hasUI) ctx.ui.notify(`Failed to generate summary: ${(err as Error).message}.`, "error");
 				return;
@@ -98,18 +120,14 @@ function registerCompact(pi: ExtensionAPI) {
 			if (result === "empty") {
 				ctx.ui.notify("Nothing to summarize in this session.", "info");
 			} else {
-				ctx.ui.notify("Session summary written to ~/.pi/agent/compact.md.", "info");
+				ctx.ui.notify(`Session summary written to ~/.pi/agent/compact/${sessionId}.md.`, "info");
 			}
 		},
 	});
 
-	pi.on("before_agent_start", (event) => {
-		const summary = readPiFile(COMPACT_RELATIVE_PATH);
-		const mtime = summary ? piFileMtime(COMPACT_RELATIVE_PATH) : null;
-		const summaryDate = mtime ? (mtime.toISOString().split("T")[0] ?? "unknown") : "unknown";
-
-		const systemPrompt = buildContextPrompt(event.systemPrompt, summary, summaryDate);
-		return { systemPrompt };
+	pi.on("before_agent_start", (event, ctx) => {
+		const summary = readCompact(ctx.sessionManager.getSessionId());
+		return { systemPrompt: buildContextPrompt(event.systemPrompt, summary) };
 	});
 }
 

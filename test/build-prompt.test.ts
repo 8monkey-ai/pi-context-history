@@ -5,25 +5,25 @@ import { buildContextPrompt } from "../src/build-prompt.ts";
 const BASE = "You are a helpful assistant.";
 
 test("leaves the base prompt unchanged when the summary is absent", () => {
-	const result = buildContextPrompt(BASE, null, "unknown");
+	const result = buildContextPrompt(BASE, null);
 	assert.equal(result, BASE);
 });
 
-test("appends the summary block with the date attribute", () => {
-	const result = buildContextPrompt(BASE, "Spoke about pricing.", "2026-06-29");
+test("appends the summary block", () => {
+	const result = buildContextPrompt(BASE, "Spoke about pricing.");
 	assert.ok(result.startsWith(BASE));
-	assert.ok(result.includes('<summary date="2026-06-29">\nSpoke about pricing.\n</summary>'));
+	assert.ok(result.includes("<summary>\nSpoke about pricing.\n</summary>"));
 	assert.ok(result.includes("<additional_context>"));
 	assert.ok(result.includes("The above is a summary of recent interactions with this contact."));
 });
 
 test("never emits a user_data block", () => {
-	const result = buildContextPrompt(BASE, "Recent chat.", "2026-01-01");
+	const result = buildContextPrompt(BASE, "Recent chat.");
 	assert.ok(!result.includes("<user_data>"));
 });
 
 test("uses the exact tag wording", () => {
-	const result = buildContextPrompt(BASE, "S", "2026-06-29");
+	const result = buildContextPrompt(BASE, "S");
 	assert.ok(
 		result.includes(
 			"Continue the conversation using the same language and tone and follow the language direction above.",
