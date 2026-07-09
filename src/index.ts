@@ -60,9 +60,6 @@ function firstUserDate(entries: TranscriptEntry[]) {
 	return first ? new Date(first.timestamp) : null;
 }
 
-// One summary file per session id, so sessions never see (or block) each
-// other's summaries. Session ids are stable across resume; forks get new ids
-// and start without a summary.
 function compactPath(sessionId: string) {
 	return join(COMPACT_DIR, `${sessionId}.md`);
 }
