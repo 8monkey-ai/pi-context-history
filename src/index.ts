@@ -113,6 +113,18 @@ function registerCompact(pi: ExtensionAPI) {
 	});
 }
 
+// Pi defers writing a new session file until the first assistant message, so
+// appending to a fresh session (e.g. `pi --session-id x -p "/add-user-message ..."`)
+// would exit without persisting anything. Force the write via private internals.
+// Remove once https://github.com/earendil-works/pi/issues/6453 ships a public flush().
+function flushSession(session: SessionManager) {
+	const internals = session as unknown as { flushed: boolean; _rewriteFile(): void };
+	if (!internals.flushed) {
+		internals._rewriteFile();
+		internals.flushed = true;
+	}
+}
+
 function registerAppendMessage(pi: ExtensionAPI) {
 	pi.registerCommand("add-user-message", {
 		description: "Append a user message to the end of the conversation history",
@@ -124,6 +136,7 @@ function registerAppendMessage(pi: ExtensionAPI) {
 			}
 			const session = ctx.sessionManager as SessionManager;
 			session.appendMessage({ role: "user", content: [{ type: "text", text }], timestamp: Date.now() });
+			flushSession(session);
 			if (ctx.hasUI) ctx.ui.notify("Appended a user message; it applies on the next session rebuild.", "info");
 		},
 	});
@@ -152,6 +165,7 @@ function registerAppendMessage(pi: ExtensionAPI) {
 				stopReason: "stop",
 				timestamp: Date.now(),
 			});
+			flushSession(session);
 			if (ctx.hasUI) {
 				ctx.ui.notify("Appended an assistant message; it applies on the next session rebuild.", "info");
 			}
